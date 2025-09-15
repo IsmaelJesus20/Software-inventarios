@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Variables de entorno con fallback para producción
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tu-proyecto.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://epqxxkzekemtudvrxchc.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwcXh4a3pla2VtdHVkdnJ4Y2hjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxOTA5MjEsImV4cCI6MjA3Mjc2NjkyMX0.FNgJ_0tIls-D_2aCo4ZZ31a7HMWw7aeHAKHeNgsqUjY'
 
 // Debug: Mostrar variables en consola (solo para diagnóstico)
 console.log('🔍 Debug Supabase config:', {
