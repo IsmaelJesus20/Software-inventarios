@@ -1,15 +1,21 @@
 #!/bin/bash
 
-# Script para inyectar variables de entorno en el build de Vite
-echo "🔧 Configurando variables de entorno para producción..."
+# Script para iniciar nginx en producción
+echo "🔧 Iniciando aplicación en producción..."
 
-# Verificar que las variables existen
+# Mostrar información de debug
+echo "🔍 Variables de entorno disponibles:"
+echo "VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-'NO CONFIGURADA'}"
+echo "VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-'NO CONFIGURADA'}"
+
+# Si las variables no están disponibles en runtime, no es crítico
+# porque ya deberían estar compiladas en el build
 if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
-    echo "❌ Error: Variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY son requeridas"
-    exit 1
+    echo "⚠️ Advertencia: Variables de entorno no disponibles en runtime"
+    echo "ℹ️ Esto es normal si están compiladas en el build"
 fi
 
-echo "✅ Variables de entorno configuradas"
+echo "✅ Configuración completada"
 echo "📦 Iniciando servidor nginx..."
 
 # Iniciar nginx
