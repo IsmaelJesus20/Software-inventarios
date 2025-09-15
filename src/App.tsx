@@ -8,7 +8,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Technical from "./pages/Technical";
 import UserManagement from "./pages/UserManagement";
-import UserManagementSimple from "./pages/UserManagementSimple";
 import NotFound from "./pages/NotFound";
 
 // Components  

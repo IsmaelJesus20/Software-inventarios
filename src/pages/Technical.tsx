@@ -39,7 +39,7 @@ const Technical = () => {
     if (!hasPermission('edit_materials')) {
       toast({
         title: "Permisos insuficientes",
-        description: "Solo admin_padre puede editar materiales",
+        description: "Solo admin padre y admin pueden editar materiales",
         variant: "destructive",
       });
       return;

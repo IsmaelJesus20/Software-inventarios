@@ -82,7 +82,7 @@ export const useAuth = () => {
     }
   };
 
-  const hasPermission = (permission: 'read' | 'write' | 'admin'): boolean => {
+  const hasPermission = (permission: 'read' | 'write' | 'admin' | 'admin_padre' | 'edit_materials' | 'user_management'): boolean => {
     return authService.hasPermission(permission);
   };
 

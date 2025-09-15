@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { userManagementService, type UserProfile } from '@/services/userManagement'
 import { Button } from '@/components/ui/button'
@@ -48,20 +48,49 @@ const UserManagement = () => {
   const [editForm, setEditForm] = useState({
     nombre_completo: '',
     email: '',
-    role: '' as 'admin_padre' | 'admin' | 'tecnico'
+    role: 'tecnico' as 'admin_padre' | 'admin' | 'tecnico'
   })
 
+  // Verificación de permisos estable usando el rol directamente
+  const canManageUsers = user?.originalRole === 'admin_padre'
+
   useEffect(() => {
-    // TEMPORAL: Permitir acceso a todos para testing
-    // if (!user || user.originalRole !== 'admin_padre') {
-    //   navigate('/')
-    //   return
-    // }
+    if (!user) return
 
-    loadProfiles()
-  }, [user, navigate])
+    if (user.originalRole !== 'admin_padre') {
+      navigate('/', { replace: true })
+      return
+    }
 
-  const loadProfiles = async () => {
+    // Cargar profiles directamente en el useEffect
+    const loadData = async () => {
+      try {
+        console.log('🔄 UserManagement: Iniciando carga de perfiles...')
+        console.log('🔄 UserManagement: Usuario antes de cargar:', user?.email, user?.originalRole)
+
+        setLoading(true)
+        setError(null)
+        const data = await userManagementService.getAllProfiles()
+
+        console.log('✅ UserManagement: Perfiles cargados:', data.length)
+        console.log('🔄 UserManagement: Usuario después de cargar:', user?.email, user?.originalRole)
+
+        setProfiles(data)
+      } catch (err) {
+        console.error('❌ UserManagement: Error cargando perfiles:', err)
+        const errorMsg = err instanceof Error ? err.message : 'Error cargando usuarios'
+        setError(errorMsg)
+        toast.error(errorMsg)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [user?.id, user?.originalRole])
+
+  // Función separada para reload (usada en botones)
+  const loadProfiles = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -74,13 +103,37 @@ const UserManagement = () => {
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  // Si no hay usuario aún, mostrar loading
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Users className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Verificando usuario...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si el usuario no tiene permisos, mostrar mensaje breve antes de redirigir
+  if (!canManageUsers) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-muted-foreground">Redirigiendo...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleEditUser = (profile: UserProfile) => {
     setEditingUser(profile)
     setEditForm({
-      nombre_completo: profile.nombre_completo,
-      email: profile.email,
+      nombre_completo: profile.nombre_completo || '',
+      email: profile.email || '',
       role: profile.role
     })
     setIsEditDialogOpen(true)
@@ -90,14 +143,17 @@ const UserManagement = () => {
     if (!editingUser) return
 
     try {
+      // Buscar el usuario actual del array para comparar con datos actualizados
+      const currentUserData = profiles.find(p => p.id === editingUser.id)
+
       // Actualizar perfil
       await userManagementService.updateUserProfile(editingUser.id, {
         nombre_completo: editForm.nombre_completo,
         email: editForm.email
       })
 
-      // Actualizar rol si cambió
-      if (editForm.role !== editingUser.role) {
+      // Actualizar rol si cambió (usando datos actualizados, no obsoletos)
+      if (editForm.role !== currentUserData?.role) {
         await userManagementService.updateUserRole(editingUser.id, editForm.role)
       }
 
@@ -109,7 +165,7 @@ const UserManagement = () => {
       setEditForm({
         nombre_completo: '',
         email: '',
-        role: '' as 'admin_padre' | 'admin' | 'tecnico'
+        role: 'tecnico' as 'admin_padre' | 'admin' | 'tecnico'
       })
 
       await loadProfiles()
@@ -128,6 +184,34 @@ const UserManagement = () => {
       const errorMsg = err instanceof Error ? err.message : 'Error eliminando usuario'
       toast.error(errorMsg)
     }
+  }
+
+  // Loading state interno del componente
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Users className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando usuarios...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-red-600 mb-2">Error de Conexión</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={loadProfiles}>
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   const getRoleBadgeVariant = (role: string) => {
@@ -154,32 +238,6 @@ const UserManagement = () => {
       default:
         return role
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Users className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Cargando usuarios...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-red-600 mb-2">Error de Conexión</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={loadProfiles}>
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -251,88 +309,13 @@ const UserManagement = () => {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Dialog open={isEditDialogOpen && editingUser?.id === profile.id} onOpenChange={(open) => {
-                      if (!open) {
-                        setIsEditDialogOpen(false)
-                        setEditingUser(null)
-                        setEditForm({
-                          nombre_completo: '',
-                          email: '',
-                          role: '' as 'admin_padre' | 'admin' | 'tecnico'
-                        })
-                      }
-                    }}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(profile)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Editar Usuario</DialogTitle>
-                          <DialogDescription>
-                            Modifica la información y rol del usuario
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="nombre">Nombre Completo</Label>
-                            <Input
-                              id="nombre"
-                              value={editForm.nombre_completo}
-                              onChange={(e) => setEditForm({ ...editForm, nombre_completo: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={editForm.email}
-                              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="role">Rol</Label>
-                            <Select
-                              value={editForm.role}
-                              onValueChange={(value: 'admin_padre' | 'admin' | 'tecnico') =>
-                                setEditForm({ ...editForm, role: value })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="admin_padre">Admin Padre</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="tecnico">Técnico</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => {
-                            setIsEditDialogOpen(false)
-                            setEditingUser(null)
-                            setEditForm({
-                              nombre_completo: '',
-                              email: '',
-                              role: '' as 'admin_padre' | 'admin' | 'tecnico'
-                            })
-                          }}>
-                            Cancelar
-                          </Button>
-                          <Button onClick={handleSaveEdit}>
-                            Guardar Cambios
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditUser(profile)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
 
                     <Button
                       variant="outline"
@@ -361,6 +344,81 @@ const UserManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de edición único y reutilizable */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditDialogOpen(false)
+          setEditingUser(null)
+          setEditForm({
+            nombre_completo: '',
+            email: '',
+            role: 'tecnico' as 'admin_padre' | 'admin' | 'tecnico'
+          })
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogDescription>
+              Modifica la información y rol del usuario
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="nombre">Nombre Completo</Label>
+              <Input
+                id="nombre"
+                value={editForm.nombre_completo}
+                onChange={(e) => setEditForm({ ...editForm, nombre_completo: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Rol</Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(value: 'admin_padre' | 'admin' | 'tecnico') =>
+                  setEditForm({ ...editForm, role: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin_padre">Admin Padre</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="tecnico">Técnico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false)
+              setEditingUser(null)
+              setEditForm({
+                nombre_completo: '',
+                email: '',
+                role: 'tecnico' as 'admin_padre' | 'admin' | 'tecnico'
+              })
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

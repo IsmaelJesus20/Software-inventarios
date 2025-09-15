@@ -62,24 +62,28 @@ const Dashboard = () => {
       {/* Header */}
       <div className="border-b bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Package className="h-5 w-5 text-white" />
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">SaaS Inventory</h1>
+                <p className="text-sm text-gray-600">Dashboard Principal</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">SaaS Inventory</h1>
-              <p className="text-sm text-gray-600">Dashboard Principal</p>
-            </div>
+
             {/* Botón de Gestión de Usuarios - Solo para admin_padre */}
             {user?.originalRole === 'admin_padre' && (
               <Button
                 variant="outline"
                 size="sm"
-                className="ml-4"
-                onClick={() => {
-                  console.log('Admin padre navegando a /user-management...');
-                  navigate('/user-management');
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  navigate('/user-management')
                 }}
+                type="button"
               >
                 <Users className="h-4 w-4 mr-2" />
                 Gestión de Usuarios

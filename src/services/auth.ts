@@ -164,7 +164,7 @@ class AuthService {
       case 'admin_padre':
         return originalRole === 'admin_padre'
       case 'edit_materials':
-        return originalRole === 'admin_padre' // Solo admin_padre puede editar descripción y stock mínimo
+        return ['admin_padre', 'admin'].includes(originalRole) // Admin padre y admin pueden editar descripción y stock mínimo
       case 'user_management':
         return originalRole === 'admin_padre' // Solo admin_padre puede gestionar usuarios
       default:
@@ -175,8 +175,14 @@ class AuthService {
   // Método para escuchar cambios de autenticación
   onAuthStateChange(callback: (user: User | null) => void) {
     return supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 onAuthStateChange: Evento recibido:', event, {
+        hasSession: !!session,
+        userId: session?.user?.id
+      })
+
       if (event === 'SIGNED_IN' && session?.user) {
         try {
+          console.log('🔔 onAuthStateChange: Procesando SIGNED_IN...')
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
@@ -192,16 +198,26 @@ class AuthService {
               originalRole: profile.role,
               avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`
             }
+            console.log('✅ onAuthStateChange: Usuario creado:', user)
             this.currentUser = user
             callback(user)
+          } else {
+            console.warn('⚠️ onAuthStateChange: Error obteniendo perfil:', error)
+            callback(null)
           }
         } catch (error) {
-          console.error('Error en onAuthStateChange:', error)
+          console.error('❌ onAuthStateChange: Error:', error)
           callback(null)
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('🚪 onAuthStateChange: Usuario desconectado')
         this.currentUser = null
         callback(null)
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 onAuthStateChange: Token renovado - manteniendo usuario actual')
+        // No hacer nada, mantener el usuario actual
+      } else {
+        console.log('ℹ️ onAuthStateChange: Evento ignorado:', event)
       }
     })
   }
