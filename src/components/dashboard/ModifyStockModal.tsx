@@ -63,11 +63,13 @@ export const ModifyStockModal = ({ open, onOpenChange, onSuccess }: ModifyStockM
     if (open) { // Solo buscar si el modal está abierto
       performSearch();
     }
-  }, [searchQuery, materials, open]); // Removí searchMaterials de las dependencias
+  }, [searchQuery, materials, open, searchMaterials]); // Añadido searchMaterials de vuelta
 
   // Resetear formulario al abrir/cerrar modal
   useEffect(() => {
     if (open) {
+      // Limpiar búsqueda anterior y mostrar primeros resultados
+      setSearchQuery('');
       setSearchResults(materials.slice(0, 10));
     } else {
       // Resetear todo al cerrar

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { inventoryService, type Material, type Movement } from '@/services/inventory';
 
 // Cache global para evitar recargas innecesarias
@@ -107,14 +107,14 @@ export const useInventory = () => {
     }
   };
 
-  const searchMaterials = async (query: string): Promise<Material[]> => {
+  const searchMaterials = useCallback(async (query: string): Promise<Material[]> => {
     try {
       return await inventoryService.searchMaterials(query);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error en la búsqueda');
       return [];
     }
-  };
+  }, []);
 
   const getStats = () => {
     return stats;
