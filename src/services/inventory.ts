@@ -16,11 +16,18 @@ export type { Material, Movement }
 class InventoryService {
   async getMaterials(): Promise<Material[]> {
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging requests
+      const materialsPromise = supabase
         .from('inventory_items')
         .select('*')
         .eq('estado', 'activo')
         .order('created_at', { ascending: false })
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Materials fetch timeout')), 15000)
+      })
+
+      const { data, error } = await Promise.race([materialsPromise, timeoutPromise]) as any
 
       if (error) {
         console.error('❌ Error en query materials:', error)
@@ -41,16 +48,24 @@ class InventoryService {
 
   async getMovements(): Promise<Movement[]> {
     try {
-      // Primero intentemos obtener solo los movimientos básicos
-      const { data: movements, error: movementsError } = await supabase
+      // Add timeout to prevent hanging requests
+      const movementsPromise = supabase
         .from('inventory_movements')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100)
 
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Movements fetch timeout')), 10000)
+      })
+
+      const { data: movements, error: movementsError } = await Promise.race([movementsPromise, timeoutPromise]) as any
+
       if (movementsError) {
         console.error('❌ Error en query movements:', movementsError)
-        throw new Error(`Error obteniendo movimientos: ${movementsError.message}`)
+        // Don't throw error, return empty array to prevent app blocking
+        console.warn('⚠️ Returning empty movements due to error')
+        return []
       }
 
       if (!movements || movements.length === 0) {
@@ -179,34 +194,40 @@ class InventoryService {
 
   async getStats() {
     try {
-      // Obtener todos los materiales activos
-      const { data: materials, error: materialsError } = await supabase
-        .from('inventory_items')
-        .select('stock_actual, stock_minimo')
-        .eq('estado', 'activo')
+      // Add timeout to prevent hanging requests
+      const statsPromise = Promise.all([
+        supabase
+          .from('inventory_items')
+          .select('stock_actual, stock_minimo')
+          .eq('estado', 'activo'),
+        supabase
+          .from('inventory_movements')
+          .select('id')
+          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+      ])
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Stats fetch timeout')), 8000)
+      })
+
+      const [materialsResult, movementsResult] = await Promise.race([statsPromise, timeoutPromise]) as any
+
+      const { data: materials, error: materialsError } = materialsResult
+      const { data: todayMovements, error: movementsError } = movementsResult
 
       if (materialsError) {
-        throw new Error(`Error obteniendo estadísticas de materiales: ${materialsError.message}`)
+        console.warn('Error obteniendo estadísticas de materiales:', materialsError.message)
       }
-
-      // Obtener movimientos de hoy
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      const { data: todayMovements, error: movementsError } = await supabase
-        .from('inventory_movements')
-        .select('id')
-        .gte('created_at', today.toISOString())
 
       if (movementsError) {
         console.warn('Error obteniendo movimientos del día:', movementsError.message)
       }
 
-      const totalMaterials = materials.length
-      const lowStock = materials.filter(m =>
+      const totalMaterials = materials?.length || 0
+      const lowStock = materials?.filter(m =>
         m.stock_actual <= (m.stock_minimo || 0) && m.stock_actual > 0
-      ).length
-      const criticalStock = materials.filter(m => m.stock_actual === 0).length
+      ).length || 0
+      const criticalStock = materials?.filter(m => m.stock_actual === 0).length || 0
       const totalMovements = todayMovements?.length || 0
 
       return {

@@ -12,6 +12,8 @@ export interface User {
 
 class AuthService {
   private currentUser: User | null = null;
+  private isCheckingAuth: boolean = false;
+  private authCheckPromise: Promise<User | null> | null = null;
 
   async login(email: string, password: string): Promise<User> {
     try {
@@ -74,10 +76,39 @@ class AuthService {
   }
 
   async checkAuth(): Promise<User | null> {
+    // Prevent multiple simultaneous auth checks
+    if (this.isCheckingAuth && this.authCheckPromise) {
+      console.log('🔄 checkAuth: Verificación ya en curso, esperando...')
+      return this.authCheckPromise
+    }
+
+    this.isCheckingAuth = true
+
+    this.authCheckPromise = this.performAuthCheck()
+
+    try {
+      const result = await this.authCheckPromise
+      return result
+    } finally {
+      this.isCheckingAuth = false
+      this.authCheckPromise = null
+    }
+  }
+
+  private async performAuthCheck(): Promise<User | null> {
     try {
       console.log('🔍 checkAuth: Iniciando verificación...')
 
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // Timeout para evitar requests colgados
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Auth check timeout')), 10000) // 10 segundos
+      })
+
+      const sessionPromise = supabase.auth.getSession()
+      const { data: { session }, error: sessionError } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ])
 
       console.log('🔍 checkAuth: Sesión obtenida:', { session: !!session, error: sessionError })
 
@@ -95,7 +126,7 @@ class AuthService {
 
       console.log('✅ checkAuth: Usuario en sesión:', session.user.id)
 
-      // Si ya tenemos el usuario en memoria, devolverlo
+      // Si ya tenemos el usuario en memoria y es el mismo, devolverlo
       if (this.currentUser && this.currentUser.id === session.user.id) {
         console.log('📋 checkAuth: Usuario ya en memoria')
         return this.currentUser
@@ -103,12 +134,21 @@ class AuthService {
 
       console.log('🔍 checkAuth: Obteniendo perfil del usuario...')
 
-      // Obtener el perfil del usuario
-      const { data: profile, error } = await supabase
+      // Obtener el perfil del usuario con timeout
+      const profileTimeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000) // 8 segundos
+      })
+
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single()
+
+      const { data: profile, error } = await Promise.race([
+        profilePromise,
+        profileTimeoutPromise
+      ]) as any
 
       console.log('🔍 checkAuth: Respuesta perfil:', { profile, error })
 
@@ -183,11 +223,19 @@ class AuthService {
       if (event === 'SIGNED_IN' && session?.user) {
         try {
           console.log('🔔 onAuthStateChange: Procesando SIGNED_IN...')
-          const { data: profile, error } = await supabase
+
+          // Add timeout to prevent hanging
+          const profilePromise = supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single()
+
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Profile fetch timeout in auth state change')), 5000)
+          })
+
+          const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any
 
           if (!error && profile) {
             const user: User = {
@@ -203,19 +251,43 @@ class AuthService {
             callback(user)
           } else {
             console.warn('⚠️ onAuthStateChange: Error obteniendo perfil:', error)
-            callback(null)
+            // Create basic user on profile error to prevent app breaking
+            const basicUser: User = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.email?.split('@')[0] || 'Usuario',
+              role: 'user',
+              originalRole: 'tecnico',
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`
+            }
+            this.currentUser = basicUser
+            callback(basicUser)
           }
         } catch (error) {
           console.error('❌ onAuthStateChange: Error:', error)
-          callback(null)
+          // Don't call callback(null) on error, just log it
+          // This prevents unnecessary logout on temporary network issues
+          console.warn('⚠️ onAuthStateChange: Manteniendo sesión debido a error temporal')
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('🚪 onAuthStateChange: Usuario desconectado')
         this.currentUser = null
+
+        // Clear all caches when signing out
+        if (typeof window !== 'undefined') {
+          // Clear localStorage
+          localStorage.clear()
+          // Clear sessionStorage
+          sessionStorage.clear()
+        }
+
         callback(null)
       } else if (event === 'TOKEN_REFRESHED') {
         console.log('🔄 onAuthStateChange: Token renovado - manteniendo usuario actual')
-        // No hacer nada, mantener el usuario actual
+        // Maintain current user state during token refresh to prevent loading states
+        if (this.currentUser) {
+          callback(this.currentUser)
+        }
       } else {
         console.log('ℹ️ onAuthStateChange: Evento ignorado:', event)
       }
