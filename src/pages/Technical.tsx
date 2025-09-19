@@ -86,7 +86,7 @@ const Technical = () => {
               <p className="text-xs text-gray-500 capitalize">{user?.originalRole}</p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/">
+              <Link to="/dashboard">
                 <Home className="h-4 w-4 mr-2" />
                 Dashboard
               </Link>

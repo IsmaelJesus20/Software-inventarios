@@ -24,12 +24,12 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Technical />
               </ProtectedRoute>
             } />
-            <Route path="/technical" element={
+            <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Technical />
+                <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/user-management" element={

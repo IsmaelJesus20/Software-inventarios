@@ -97,7 +97,7 @@ const Dashboard = () => {
               <p className="text-xs text-gray-500 capitalize">{user?.originalRole}</p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/technical">
+              <Link to="/">
                 <Settings className="h-4 w-4 mr-2" />
                 Vista Técnica
               </Link>
