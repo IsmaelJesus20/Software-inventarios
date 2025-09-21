@@ -9,6 +9,7 @@ import { MovementsTable } from '@/components/dashboard/MovementsTable';
 import { CreateMaterialModal } from '@/components/dashboard/CreateMaterialModal';
 import { ModifyStockModal } from '@/components/dashboard/ModifyStockModal';
 import { EditMaterialModal } from '@/components/dashboard/EditMaterialModal';
+import { MaterialDetailsModal } from '@/components/dashboard/MaterialDetailsModal';
 import { Package, LogOut, Home, Wrench, Database, BarChart3, Settings2, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
@@ -19,6 +20,7 @@ const Technical = () => {
   const [createMaterialModalOpen, setCreateMaterialModalOpen] = useState(false);
   const [modifyStockModalOpen, setModifyStockModalOpen] = useState(false);
   const [editMaterialModalOpen, setEditMaterialModalOpen] = useState(false);
+  const [materialDetailsModalOpen, setMaterialDetailsModalOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
 
   const handleLogout = async () => {
@@ -28,10 +30,8 @@ const Technical = () => {
   const handleViewMaterial = (materialId: string) => {
     const material = materials.find(m => m.id === materialId);
     if (material) {
-      toast({
-        title: "Material Seleccionado",
-        description: `${material.name} - Stock: ${material.currentStock}`,
-      });
+      setSelectedMaterial(material);
+      setMaterialDetailsModalOpen(true);
     }
   };
 
@@ -439,6 +439,18 @@ const Technical = () => {
             }, 1000);
             setSelectedMaterial(null);
           }}
+        />
+
+        {/* Modal para ver detalles del material */}
+        <MaterialDetailsModal
+          open={materialDetailsModalOpen}
+          onOpenChange={(open) => {
+            setMaterialDetailsModalOpen(open);
+            if (!open) {
+              setSelectedMaterial(null);
+            }
+          }}
+          material={selectedMaterial}
         />
       </div>
     </div>

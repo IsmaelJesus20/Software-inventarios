@@ -99,9 +99,9 @@ class AuthService {
     try {
       console.log('🔍 checkAuth: Iniciando verificación...')
 
-      // Timeout para evitar requests colgados
+      // Timeout para evitar requests colgados (más generoso en desarrollo)
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Auth check timeout')), 10000) // 10 segundos
+        setTimeout(() => reject(new Error('Auth check timeout')), 30000) // 30 segundos
       })
 
       const sessionPromise = supabase.auth.getSession()
@@ -134,9 +134,10 @@ class AuthService {
 
       console.log('🔍 checkAuth: Obteniendo perfil del usuario...')
 
-      // Obtener el perfil del usuario con timeout
+      // Obtener el perfil del usuario con timeout (adapta según entorno)
+      const timeoutDuration = import.meta.env.DEV ? 30000 : 15000 // 30s desarrollo, 15s producción
       const profileTimeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000) // 8 segundos
+        setTimeout(() => reject(new Error('Profile fetch timeout')), timeoutDuration)
       })
 
       const profilePromise = supabase
