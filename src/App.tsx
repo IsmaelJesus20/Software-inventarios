@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Technical from "./pages/Technical";
 import UserManagement from "./pages/UserManagement";
+import ModifyStock from "./pages/ModifyStock";
 import NotFound from "./pages/NotFound";
 
 // Components
@@ -79,6 +80,11 @@ function AppContent() {
         <Route path="/user-management" element={
           <ProtectedRoute>
             <UserManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/modify-stock" element={
+          <ProtectedRoute>
+            <ModifyStock />
           </ProtectedRoute>
         } />
         <Route path="*" element={<NotFound />} />

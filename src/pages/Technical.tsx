@@ -7,18 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InventoryTable } from '@/components/dashboard/InventoryTable';
 import { MovementsTable } from '@/components/dashboard/MovementsTable';
 import { CreateMaterialModal } from '@/components/dashboard/CreateMaterialModal';
-import { ModifyStockModal } from '@/components/dashboard/ModifyStockModal';
 import { EditMaterialModal } from '@/components/dashboard/EditMaterialModal';
 import { MaterialDetailsModal } from '@/components/dashboard/MaterialDetailsModal';
 import { Package, LogOut, Home, Wrench, Database, BarChart3, Settings2, History } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 
 const Technical = () => {
   const { user, logout, hasPermission } = useAuth();
   const { materials, movements, loading, getStats, refreshData } = useInventory();
+  const navigate = useNavigate();
   const [createMaterialModalOpen, setCreateMaterialModalOpen] = useState(false);
-  const [modifyStockModalOpen, setModifyStockModalOpen] = useState(false);
   const [editMaterialModalOpen, setEditMaterialModalOpen] = useState(false);
   const [materialDetailsModalOpen, setMaterialDetailsModalOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
@@ -244,15 +243,27 @@ const Technical = () => {
                     <Package className="h-4 w-4 mr-2" />
                     Crear Nuevo Material
                   </Button>
-                  <Button
-                    className="w-full justify-start"
-                    variant="outline"
-                    disabled={!hasPermission('write')}
-                    onClick={() => setModifyStockModalOpen(true)}
-                  >
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Modificar Stock
-                  </Button>
+                  {hasPermission('write') ? (
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      asChild
+                    >
+                      <Link to="/modify-stock">
+                        <Settings2 className="h-4 w-4 mr-2" />
+                        Modificar Stock
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      disabled={true}
+                    >
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      Modificar Stock
+                    </Button>
+                  )}
                   <Button 
                     className="w-full justify-start" 
                     variant="outline"
@@ -409,18 +420,6 @@ const Technical = () => {
           onOpenChange={setCreateMaterialModalOpen}
           onSuccess={() => {
             // Refrescar los datos después de crear un material con un pequeño delay
-            setTimeout(() => {
-              refreshData();
-            }, 1000);
-          }}
-        />
-
-        {/* Modal para modificar stock */}
-        <ModifyStockModal
-          open={modifyStockModalOpen}
-          onOpenChange={setModifyStockModalOpen}
-          onSuccess={() => {
-            // Refrescar los datos después de modificar stock con un pequeño delay
             setTimeout(() => {
               refreshData();
             }, 1000);
