@@ -13,15 +13,18 @@ COPY . .
 # Build args para variables de entorno (Easypanel los pasa automáticamente)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_APP_BASE_URL
 
 # Verificar que las variables existen durante el build
 RUN echo "Build args recibidos:" && \
     echo "VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-NO_CONFIGURADA}" && \
-    echo "VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-NO_CONFIGURADA}"
+    echo "VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-NO_CONFIGURADA}" && \
+    echo "VITE_APP_BASE_URL: ${VITE_APP_BASE_URL:-NO_CONFIGURADA}"
 
 # Establecer variables de entorno para el build
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_APP_BASE_URL=$VITE_APP_BASE_URL
 
 # Build para producción
 RUN npm run build

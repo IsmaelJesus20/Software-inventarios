@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventory } from '@/hooks/useInventory';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ interface StockFormData {
 
 const ModifyStock = () => {
   const navigate = useNavigate();
+  const { materialId } = useParams<{ materialId: string }>();
   const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
   const { materials, searchMaterials, refreshData } = useInventory();
 
@@ -82,6 +83,56 @@ const ModifyStock = () => {
   useEffect(() => {
     setSearchResults(materials.slice(0, 10));
   }, [materials]);
+
+  // Manejar preselección automática desde URL (para QR)
+  useEffect(() => {
+    if (materialId && materials.length > 0) {
+      console.log('🔗 ModifyStock: materialId detectado en URL:', materialId);
+
+      // Buscar material por ID
+      const preselectedMaterial = materials.find(m => m.id === materialId);
+
+      if (preselectedMaterial) {
+        console.log('✅ Material encontrado por ID:', preselectedMaterial.name);
+
+        // Preseleccionar el material automáticamente
+        setSelectedMaterial(preselectedMaterial);
+        setFormData(prev => ({
+          ...prev,
+          material_id: preselectedMaterial.id,
+          material_name: preselectedMaterial.name,
+          current_stock: preselectedMaterial.currentStock
+        }));
+
+        // Poner el nombre del material en la barra de búsqueda
+        setSearchQuery(preselectedMaterial.name);
+
+        // Limpiar resultados de búsqueda para mostrar solo el seleccionado
+        setSearchResults([]);
+
+        console.log('🎯 Material preseleccionado automáticamente');
+      } else {
+        console.log('❌ Material no encontrado con ID:', materialId);
+        // Si no se encuentra el material, buscar por código
+        const materialByCode = materials.find(m =>
+          m.codigo.toLowerCase() === materialId.toLowerCase()
+        );
+
+        if (materialByCode) {
+          console.log('✅ Material encontrado por código:', materialByCode.name);
+          setSelectedMaterial(materialByCode);
+          setFormData(prev => ({
+            ...prev,
+            material_id: materialByCode.id,
+            material_name: materialByCode.name,
+            current_stock: materialByCode.currentStock
+          }));
+          setSearchQuery(materialByCode.name);
+          setSearchResults([]);
+        }
+      }
+    }
+  }, [materialId, materials]);
 
   const handleLogout = async () => {
     await logout();
@@ -243,8 +294,12 @@ const ModifyStock = () => {
               <Settings2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Modificar Stock</h1>
-              <p className="text-sm text-gray-600">Gestión de inventario</p>
+              <h1 className="text-xl font-bold text-gray-900">
+                {materialId ? 'Gestión Rápida desde QR' : 'Modificar Stock'}
+              </h1>
+              <p className="text-sm text-gray-600">
+                {materialId ? 'Material preseleccionado automáticamente' : 'Gestión de inventario'}
+              </p>
             </div>
           </div>
 
@@ -257,12 +312,6 @@ const ModifyStock = () => {
               <Link to="/">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/dashboard">
-                <Home className="h-4 w-4 mr-2" />
-                Dashboard
               </Link>
             </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>

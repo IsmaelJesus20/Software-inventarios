@@ -8,9 +8,11 @@ services:
       args:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_APP_BASE_URL: ${VITE_APP_BASE_URL}
     ports:
       - "80:80"
     environment:
       - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
       - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_APP_BASE_URL=${VITE_APP_BASE_URL}
     restart: unless-stopped

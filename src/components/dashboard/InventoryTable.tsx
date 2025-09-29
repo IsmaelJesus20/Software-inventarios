@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter, Package, AlertTriangle, Eye, Edit } from 'lucide-react';
+import { Search, Filter, Package, AlertTriangle, Eye, Edit, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import type { Material } from '@/services/inventory';
 
@@ -13,9 +13,10 @@ interface InventoryTableProps {
   materials: Material[];
   onViewMaterial?: (materialId: string) => void;
   onEditMaterial?: (materialId: string) => void;
+  onShowQR?: (materialId: string) => void;
 }
 
-export const InventoryTable = ({ materials, onViewMaterial, onEditMaterial }: InventoryTableProps) => {
+export const InventoryTable = ({ materials, onViewMaterial, onEditMaterial, onShowQR }: InventoryTableProps) => {
   const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -199,6 +200,14 @@ export const InventoryTable = ({ materials, onViewMaterial, onEditMaterial }: In
                             title="Ver detalles"
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onShowQR?.(material.id)}
+                            title="Generar código QR"
+                          >
+                            <QrCode className="h-4 w-4" />
                           </Button>
                           {hasPermission('edit_materials') && (
                             <Button

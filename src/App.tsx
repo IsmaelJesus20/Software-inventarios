@@ -6,11 +6,11 @@ import { useIdleTimer } from "@/hooks/useIdleTimer";
 
 // Pages
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import Technical from "./pages/Technical";
 import UserManagement from "./pages/UserManagement";
 import ModifyStock from "./pages/ModifyStock";
 import NotFound from "./pages/NotFound";
+import NetworkTest from "./pages/NetworkTest";
 
 // Components
 import ProtectedRoute from "./components/layout/ProtectedRoute";
@@ -72,11 +72,6 @@ function AppContent() {
             <Technical />
           </ProtectedRoute>
         } />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
         <Route path="/user-management" element={
           <ProtectedRoute>
             <UserManagement />
@@ -87,6 +82,12 @@ function AppContent() {
             <ModifyStock />
           </ProtectedRoute>
         } />
+        <Route path="/modify-stock/:materialId" element={
+          <ProtectedRoute>
+            <ModifyStock />
+          </ProtectedRoute>
+        } />
+        <Route path="/network-test" element={<NetworkTest />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

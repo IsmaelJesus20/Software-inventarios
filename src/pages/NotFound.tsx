@@ -20,7 +20,7 @@ const NotFound = () => {
           <Button asChild className="w-full">
             <Link to="/">
               <Home className="mr-2 h-4 w-4" />
-              Volver al Dashboard
+              Volver a Inicio
             </Link>
           </Button>
         </CardContent>

@@ -9,6 +9,7 @@ import { MovementsTable } from '@/components/dashboard/MovementsTable';
 import { CreateMaterialModal } from '@/components/dashboard/CreateMaterialModal';
 import { EditMaterialModal } from '@/components/dashboard/EditMaterialModal';
 import { MaterialDetailsModal } from '@/components/dashboard/MaterialDetailsModal';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
 import { Package, LogOut, Home, Wrench, Database, BarChart3, Settings2, History } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
@@ -20,6 +21,7 @@ const Technical = () => {
   const [createMaterialModalOpen, setCreateMaterialModalOpen] = useState(false);
   const [editMaterialModalOpen, setEditMaterialModalOpen] = useState(false);
   const [materialDetailsModalOpen, setMaterialDetailsModalOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
 
   const handleLogout = async () => {
@@ -48,6 +50,14 @@ const Technical = () => {
     if (material) {
       setSelectedMaterial(material);
       setEditMaterialModalOpen(true);
+    }
+  };
+
+  const handleShowQR = (materialId: string) => {
+    const material = materials.find(m => m.id === materialId);
+    if (material) {
+      setSelectedMaterial(material);
+      setQrModalOpen(true);
     }
   };
 
@@ -84,12 +94,6 @@ const Technical = () => {
               <p className="text-sm font-medium text-gray-900">{user?.name}</p>
               <p className="text-xs text-gray-500 capitalize">{user?.originalRole}</p>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/dashboard">
-                <Home className="h-4 w-4 mr-2" />
-                Dashboard
-              </Link>
-            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Salir
@@ -130,6 +134,7 @@ const Technical = () => {
               materials={materials}
               onViewMaterial={handleViewMaterial}
               onEditMaterial={handleEditMaterial}
+              onShowQR={handleShowQR}
             />
           </TabsContent>
 
@@ -451,6 +456,18 @@ const Technical = () => {
           }}
           material={selectedMaterial}
         />
+
+        {/* Modal para generar QR */}
+        {selectedMaterial && (
+          <QRCodeGenerator
+            material={selectedMaterial}
+            isOpen={qrModalOpen}
+            onClose={() => {
+              setQrModalOpen(false);
+              setSelectedMaterial(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );

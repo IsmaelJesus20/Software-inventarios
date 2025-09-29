@@ -26,36 +26,29 @@ export interface Movement {
   timestamp: Date
 }
 
-// Tipos de Supabase (mapping)
-export interface SupabaseInventoryItem {
+// Tipos de Supabase (mapping) - Estructura real de la base de datos
+export interface SupabaseMaterial {
   id: string
-  codigo: string
-  descripcion: string
-  categoria: string | null
-  ubicacion: string | null
-  stock_actual: number
-  stock_minimo: number | null
-  precio_unitario: number | null
-  unidad_medida: string | null
-  estado: string | null
+  name: string                    // Campo real en Supabase
+  category: string               // Campo real en Supabase
+  location: string               // Campo real en Supabase
+  current_stock: number          // Campo real en Supabase
+  min_stock: number | null       // Campo real en Supabase
+  initial_stock: number          // Campo real en Supabase
   created_at: string
   updated_at: string
-  created_by: string | null
-  updated_by: string | null
+  unit: string | null            // Campo real en Supabase
 }
 
-export interface SupabaseInventoryMovement {
+export interface SupabaseMovement {
   id: string
-  item_id: string
-  tipo_movimiento: string
-  cantidad: number
-  stock_anterior: number
-  stock_nuevo: number
-  motivo: string | null
-  comentarios: string | null
-  documento_referencia: string | null
-  usuario_id: string
-  created_at: string
+  material_id: string            // Campo real en Supabase
+  material_name: string          // Campo real en Supabase
+  type: string                   // Campo real en Supabase
+  quantity: number               // Campo real en Supabase
+  responsible: string            // Campo real en Supabase
+  comment: string                // Campo real en Supabase
+  timestamp: string              // Campo real en Supabase
 }
 
 export interface SupabaseProfile {
@@ -69,43 +62,42 @@ export interface SupabaseProfile {
 }
 
 // Funciones de mapping entre Supabase y la app
-export function mapSupabaseItemToMaterial(item: SupabaseInventoryItem): Material {
+export function mapSupabaseItemToMaterial(item: SupabaseMaterial): Material {
   return {
     id: item.id,
-    codigo: item.codigo,
-    name: item.descripcion,
-    category: item.categoria || 'Sin categoría',
-    location: item.ubicacion || 'Sin ubicación',
-    currentStock: item.stock_actual,
-    minStock: item.stock_minimo || 0,
-    initialStock: item.stock_actual, // Para mantener compatibilidad
+    codigo: item.id,                              // Usar ID como código
+    name: item.name,                              // Campo real
+    category: item.category || 'Sin categoría',   // Campo real
+    location: item.location || 'Sin ubicación',   // Campo real
+    currentStock: item.current_stock,             // Campo real
+    minStock: item.min_stock || 0,                // Campo real
+    initialStock: item.initial_stock || 0,        // Campo real
     createdAt: new Date(item.created_at),
     updatedAt: new Date(item.updated_at)
   }
 }
 
-export function mapMaterialToSupabaseItem(material: Partial<Material>): Partial<SupabaseInventoryItem> {
+export function mapMaterialToSupabaseItem(material: Partial<Material>): Partial<SupabaseMaterial> {
   return {
-    descripcion: material.name || '',
-    categoria: material.category,
-    ubicacion: material.location,
-    stock_actual: material.currentStock || 0,
-    stock_minimo: material.minStock || 0,
+    name: material.name || '',
+    category: material.category,
+    location: material.location,
+    current_stock: material.currentStock || 0,
+    min_stock: material.minStock || 0,
+    initial_stock: material.initialStock || 0,
   }
 }
 
 export function mapSupabaseMovementToMovement(
-  movement: SupabaseInventoryMovement,
-  materialName: string,
-  responsibleName: string
+  movement: SupabaseMovement
 ): Movement {
-  // Mapear tipo_movimiento de Supabase a tipo de la app
+  // Los datos ya vienen en el formato correcto desde Supabase
   let type: 'create' | 'increase' | 'decrease'
-  switch (movement.tipo_movimiento.toLowerCase()) {
-    case 'entrada':
+  switch (movement.type.toLowerCase()) {
+    case 'increase':
       type = 'increase'
       break
-    case 'salida':
+    case 'decrease':
       type = 'decrease'
       break
     default:
@@ -115,13 +107,13 @@ export function mapSupabaseMovementToMovement(
 
   return {
     id: movement.id,
-    materialId: movement.item_id,
-    materialName: materialName,
+    materialId: movement.material_id,
+    materialName: movement.material_name,
     type: type,
-    quantity: movement.tipo_movimiento === 'salida' ? -movement.cantidad : movement.cantidad,
-    responsible: responsibleName,
-    comment: movement.comentarios || movement.motivo || 'Sin comentario',
-    timestamp: new Date(movement.created_at)
+    quantity: movement.quantity,
+    responsible: movement.responsible,
+    comment: movement.comment || 'Sin comentarios',
+    timestamp: new Date(movement.timestamp)
   }
 }
 

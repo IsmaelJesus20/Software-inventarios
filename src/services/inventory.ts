@@ -6,8 +6,8 @@ import {
   mapSupabaseItemToMaterial,
   mapMaterialToSupabaseItem,
   mapSupabaseMovementToMovement,
-  type SupabaseInventoryItem,
-  type SupabaseInventoryMovement,
+  type SupabaseMaterial,
+  type SupabaseMovement,
   type SupabaseProfile
 } from '@/types/database'
 
@@ -18,9 +18,8 @@ class InventoryService {
     try {
       // Add timeout to prevent hanging requests
       const materialsPromise = supabase
-        .from('inventory_items')
+        .from('materials')
         .select('*')
-        .eq('estado', 'activo')
         .order('created_at', { ascending: false })
 
       const timeoutPromise = new Promise((_, reject) => {
@@ -50,9 +49,9 @@ class InventoryService {
     try {
       // Add timeout to prevent hanging requests
       const movementsPromise = supabase
-        .from('inventory_movements')
+        .from('movements')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('timestamp', { ascending: false })
         .limit(100)
 
       const timeoutPromise = new Promise((_, reject) => {
@@ -72,13 +71,8 @@ class InventoryService {
         return []
       }
 
-      // Por ahora, usamos nombres genéricos para evitar problemas de foreign keys
-      return movements.map(movement => {
-        const materialName = 'Material ID: ' + movement.item_id.slice(0, 8)
-        const responsibleName = 'Usuario ID: ' + movement.usuario_id.slice(0, 8)
-
-        return mapSupabaseMovementToMovement(movement, materialName, responsibleName)
-      })
+      // Los datos ya vienen con los nombres correctos desde Supabase
+      return movements.map(movement => mapSupabaseMovementToMovement(movement))
     } catch (error) {
       console.error('❌ Error en getMovements:', error)
       // No lanzar error aquí, solo retornar array vacío para no bloquear la app
@@ -175,7 +169,7 @@ class InventoryService {
   async searchMaterials(query: string): Promise<Material[]> {
     try {
       const { data, error } = await supabase
-        .from('inventory_items')
+        .from('materials')
         .select('*')
         .eq('estado', 'activo')
         .or(`descripcion.ilike.%${query}%,codigo.ilike.%${query}%,categoria.ilike.%${query}%,ubicacion.ilike.%${query}%`)
@@ -197,13 +191,12 @@ class InventoryService {
       // Add timeout to prevent hanging requests
       const statsPromise = Promise.all([
         supabase
-          .from('inventory_items')
-          .select('stock_actual, stock_minimo')
-          .eq('estado', 'activo'),
+          .from('materials')
+          .select('current_stock, min_stock'),
         supabase
-          .from('inventory_movements')
+          .from('movements')
           .select('id')
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+          .gte('timestamp', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
       ])
 
       const timeoutPromise = new Promise((_, reject) => {
@@ -225,9 +218,9 @@ class InventoryService {
 
       const totalMaterials = materials?.length || 0
       const lowStock = materials?.filter(m =>
-        m.stock_actual <= (m.stock_minimo || 0) && m.stock_actual > 0
+        m.current_stock <= (m.min_stock || 0) && m.current_stock > 0
       ).length || 0
-      const criticalStock = materials?.filter(m => m.stock_actual === 0).length || 0
+      const criticalStock = materials?.filter(m => m.current_stock === 0).length || 0
       const totalMovements = todayMovements?.length || 0
 
       return {
@@ -252,7 +245,7 @@ class InventoryService {
   async getCategories(): Promise<string[]> {
     try {
       const { data, error } = await supabase
-        .from('inventory_items')
+        .from('materials')
         .select('categoria')
         .eq('estado', 'activo')
         .not('categoria', 'is', null)
@@ -273,7 +266,7 @@ class InventoryService {
   async getLocations(): Promise<string[]> {
     try {
       const { data, error } = await supabase
-        .from('inventory_items')
+        .from('materials')
         .select('ubicacion')
         .eq('estado', 'activo')
         .not('ubicacion', 'is', null)
